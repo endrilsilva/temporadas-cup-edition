@@ -5,20 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🏆 TEMPORADAS - CUP EDITION</title>
     
-    <!-- ✅ BLOQUEADOR DE ANÚNCIOS E RASTREADORES (IGUAL AO ANTERIOR) -->
+    <!-- ✅ BLOQUEADOR DE ANÚNCIOS TURBINADO - BLOQUEIA TUDO, INCLUSIVE OS DO TOPO E RODAPÉ -->
     <script>
+        // LISTA AMPLIADA COM TODOS OS TERMOS E DOMÍNIOS DE PROPAGANDA
         const bloquear = [
             'ads.', 'ad.', 'anuncio', 'banner', 'popup', 'track', 'analytics', 
             'doubleclick', 'googlesyndication', 'adserver', 'advert', 'pixel',
             'monetization', 'adservice', 'click', 'promo', 'sponsor', 'taboola',
-            'outbrain', 'criteo', 'ampproject', 'moatads', 'zedo', 'advertising'
+            'outbrain', 'criteo', 'ampproject', 'moatads', 'zedo', 'advertising',
+            'pubmatic', 'rubicon', 'appnexus', 'openx', 'adform', 'teads',
+            'adtech', 'smartadserver', 'revcontent', 'adblade', 'adroll',
+            'flutuante', 'capa', 'overlay', 'modal', 'intersticial', 'sticky',
+            'top-banner', 'bottom-banner', 'header-ad', 'footer-ad', 'ad-bar'
         ];
 
+        // 1. BLOQUEIA REQUISIÇÕES DE DADOS
         const originalFetch = window.fetch;
         window.fetch = function(input, init) {
             let url = typeof input === 'string' ? input : input.url;
             if (bloquear.some(palavra => url.toLowerCase().includes(palavra))) {
-                return new Promise(() => {});
+                return new Promise(() => {}); // Cancela o carregamento
             }
             return originalFetch.apply(this, arguments);
         };
@@ -31,35 +37,103 @@
             return originalOpen.apply(this, arguments);
         };
 
+        // 2. BLOQUEIA CARREGAMENTO DE SCRIPTS, IMAGENS E IFRAMES DE ANÚNCIOS
         const originalCreateElement = document.createElement;
         document.createElement = function(tag) {
             const el = originalCreateElement.call(this, tag);
-            if (['script', 'img', 'iframe', 'link'].includes(tag)) {
-                const prop = tag === 'link' ? 'href' : 'src';
-                const originalSet = Object.getOwnPropertyDescriptor(
-                    tag === 'link' ? HTMLLinkElement : HTMLImageElement.prototype, 
-                    prop
-                ).set;
-                
-                Object.defineProperty(el, prop, {
-                    set: function(url) {
-                        if (url && bloquear.some(palavra => url.toLowerCase().includes(palavra))) {
-                            return;
+            if (['script', 'img', 'iframe', 'link', 'div'].includes(tag)) {
+                const prop = (tag === 'link') ? 'href' : 'src';
+                if (tag !== 'div') {
+                    const originalSet = Object.getOwnPropertyDescriptor(
+                        tag === 'link' ? HTMLLinkElement : HTMLImageElement.prototype, 
+                        prop
+                    ).set;
+                    
+                    Object.defineProperty(el, prop, {
+                        set: function(url) {
+                            if (url && bloquear.some(palavra => url.toLowerCase().includes(palavra))) {
+                                return; // Bloqueia
+                            }
+                            originalSet.call(this, url);
                         }
-                        originalSet.call(this, url);
+                    });
+                }
+
+                // 3. BLOQUEIA CLASSES E IDs DE DIVS QUE SÃO ANÚNCIOS
+                const originalSetAttr = el.setAttribute;
+                el.setAttribute = function(nome, valor) {
+                    if (nome === 'class' || nome === 'id') {
+                        if (bloquear.some(palavra => valor.toLowerCase().includes(palavra))) {
+                            this.style.display = 'none';
+                            this.style.visibility = 'hidden';
+                            this.style.height = '0px';
+                            this.style.overflow = 'hidden';
+                        }
                     }
-                });
+                    return originalSetAttr.call(this, nome, valor);
+                };
             }
             return el;
         };
 
+        // 4. REMOVE ANÚNCIOS QUE APARECEM DEPOIS QUE A PÁGINA CARREGA (O PRINCIPAL PROBLEMA)
+        function removerAnuncios() {
+            // Busca elementos por nome de classe, ID ou tag que sejam de propaganda
+            const todosElementos = document.querySelectorAll('*');
+            todosElementos.forEach(el => {
+                const classe = el.className || '';
+                const id = el.id || '';
+                const tag = el.tagName || '';
+
+                // Verifica se é anúncio pelo nome da classe ou ID
+                if (bloquear.some(palavra => (classe + id + tag).toLowerCase().includes(palavra))) {
+                    el.remove(); // Apaga o elemento da tela
+                }
+
+                // Verifica se é uma camada que cobre a tela ou fica fixa em cima/baixo
+                const estilo = getComputedStyle(el);
+                if ((estilo.position === 'fixed' || estilo.position === 'sticky') && 
+                    (estilo.top === '0px' || estilo.bottom === '0px' || estilo.zIndex > 99)) {
+                    // Se for fixo no topo, embaixo ou com camada alta, verifica se parece anúncio
+                    if (el.offsetHeight > 30 && el.offsetHeight < 200) {
+                        el.remove();
+                    }
+                }
+            });
+        }
+
+        // Executa a limpeza várias vezes: na hora, depois de 1s, 2s e 5s
+        window.addEventListener('load', () => {
+            removerAnuncios();
+            setInterval(removerAnuncios, 500); // Verifica e limpa a cada 0,5 segundos
+        });
+
+        // 5. BLOQUEIA MENSAGENS DO IFRAME QUE TENTAM INSERIR PROPAGANDA
         window.addEventListener('message', function(e) {
             if (e.data && typeof e.data === 'string' && bloquear.some(p => e.data.includes(p))) {
                 e.stopImmediatePropagation();
+                e.preventDefault();
             }
         }, true);
+
+        // 6. BLOQUEIA ESTILOS QUE TENTAM FORÇAR EXIBIÇÃO
+        const css = `
+            *[class*="ad-"], *[id*="ad-"], *[class*="anuncio"], *[id*="anuncio"], 
+            *[class*="banner"], *[id*="banner"], *[class*="popup"], *[id*="popup"],
+            div[style*="position:fixed"][style*="top:0"], div[style*="position:fixed"][style*="bottom:0"] {
+                display: none !important;
+                visibility: hidden !important;
+                height: 0 !important;
+                width: 0 !important;
+                opacity: 0 !important;
+                pointer-events: none !important;
+            }
+        `;
+        const style = document.createElement('style');
+        style.textContent = css;
+        document.head.appendChild(style);
     </script>
-    <!-- ✅ FIM DO BLOQUEADOR -->
+    <!-- ✅ FIM DO BLOQUEADOR SUPER REFORÇADO -->
 
     <style>
         * {
@@ -71,22 +145,27 @@
         html, body {
             width: 100%;
             height: 100%;
-            overflow: hidden; /* Remove qualquer barra de rolagem da página principal */
+            overflow: hidden;
+            background: #000;
         }
 
         iframe {
             width: 100%;
             height: 100%;
-            border: none; /* Remove qualquer borda */
+            border: none;
             position: absolute;
             top: 0;
             left: 0;
+            z-index: 1;
+            /* Remove qualquer margem interna do iframe */
+            margin: 0 !important;
+            padding: 0 !important;
         }
     </style>
 </head>
 <body>
 
-    <!-- ✅ LINK INCORPORADO EM TELA CHEIA -->
+    <!-- ✅ LINK INCORPORADO EM TELA CHEIA + BLOQUEIO TOTAL -->
     <iframe 
         src="https://challenge.place/l/698577e0232f90c18a24c32b" 
         allowfullscreen
