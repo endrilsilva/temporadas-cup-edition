@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🏆 TEMPORADAS - CUP EDITION</title>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase.js"></script>
     
     <!-- ✅ BLOQUEADOR DE ANÚNCIOS E RASTREADORES (IGUAL AO ANTERIOR) -->
     <script>
@@ -67,71 +66,32 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: Arial, sans-serif;
         }
 
-        body {
-            background-color: #343a40;
-            min-height: 100vh;
-            padding: 15px;
-        }
-
-        .cabecalho {
-            background-color: #2c3e50;
-            color: white;
-            padding: 15px;
-            border-radius: 8px;
-            text-align: center;
-            margin-bottom: 15px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-        }
-
-        .cabecalho h1 {
-            font-size: 22px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-
-        .container-iframe {
-            background-color: white;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            height: calc(100vh - 100px);
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden; /* Remove qualquer barra de rolagem da página principal */
         }
 
         iframe {
             width: 100%;
             height: 100%;
-            border: none;
-        }
-
-        @media (max-width: 600px) {
-            .cabecalho h1 {
-                font-size: 18px;
-            }
-            .container-iframe {
-                height: calc(100vh - 90px);
-            }
+            border: none; /* Remove qualquer borda */
+            position: absolute;
+            top: 0;
+            left: 0;
         }
     </style>
 </head>
 <body>
 
-    <div class="cabecalho">
-        <h1>🏆 TEMPORADAS - CUP EDITION 🏆</h1>
-    </div>
-
-    <div class="container-iframe">
-        <!-- ✅ LINK INCORPORADO -->
-        <iframe 
-            src="https://challenge.place/l/698577e0232f90c18a24c32b" 
-            allowfullscreen
-            sandbox="allow-same-origin allow-scripts allow-forms allow-top-navigation">
-        </iframe>
-    </div>
+    <!-- ✅ LINK INCORPORADO EM TELA CHEIA -->
+    <iframe 
+        src="https://challenge.place/l/698577e0232f90c18a24c32b" 
+        allowfullscreen
+        sandbox="allow-same-origin allow-scripts allow-forms allow-top-navigation allow-popups">
+    </iframe>
 
 </body>
 </html>
