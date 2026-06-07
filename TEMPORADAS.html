@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏆 TEMPORADAS - CUP EDITION</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase.js"></script>
+    
+    <!-- ✅ BLOQUEADOR DE ANÚNCIOS E RASTREADORES (IGUAL AO ANTERIOR) -->
+    <script>
+        const bloquear = [
+            'ads.', 'ad.', 'anuncio', 'banner', 'popup', 'track', 'analytics', 
+            'doubleclick', 'googlesyndication', 'adserver', 'advert', 'pixel',
+            'monetization', 'adservice', 'click', 'promo', 'sponsor', 'taboola',
+            'outbrain', 'criteo', 'ampproject', 'moatads', 'zedo', 'advertising'
+        ];
+
+        const originalFetch = window.fetch;
+        window.fetch = function(input, init) {
+            let url = typeof input === 'string' ? input : input.url;
+            if (bloquear.some(palavra => url.toLowerCase().includes(palavra))) {
+                return new Promise(() => {});
+            }
+            return originalFetch.apply(this, arguments);
+        };
+
+        const originalOpen = window.XMLHttpRequest.prototype.open;
+        window.XMLHttpRequest.prototype.open = function(method, url) {
+            if (bloquear.some(palavra => url.toLowerCase().includes(palavra))) {
+                return;
+            }
+            return originalOpen.apply(this, arguments);
+        };
+
+        const originalCreateElement = document.createElement;
+        document.createElement = function(tag) {
+            const el = originalCreateElement.call(this, tag);
+            if (['script', 'img', 'iframe', 'link'].includes(tag)) {
+                const prop = tag === 'link' ? 'href' : 'src';
+                const originalSet = Object.getOwnPropertyDescriptor(
+                    tag === 'link' ? HTMLLinkElement : HTMLImageElement.prototype, 
+                    prop
+                ).set;
+                
+                Object.defineProperty(el, prop, {
+                    set: function(url) {
+                        if (url && bloquear.some(palavra => url.toLowerCase().includes(palavra))) {
+                            return;
+                        }
+                        originalSet.call(this, url);
+                    }
+                });
+            }
+            return el;
+        };
+
+        window.addEventListener('message', function(e) {
+            if (e.data && typeof e.data === 'string' && bloquear.some(p => e.data.includes(p))) {
+                e.stopImmediatePropagation();
+            }
+        }, true);
+    </script>
+    <!-- ✅ FIM DO BLOQUEADOR -->
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background-color: #343a40;
+            min-height: 100vh;
+            padding: 15px;
+        }
+
+        .cabecalho {
+            background-color: #2c3e50;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .cabecalho h1 {
+            font-size: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .container-iframe {
+            background-color: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            height: calc(100vh - 100px);
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        @media (max-width: 600px) {
+            .cabecalho h1 {
+                font-size: 18px;
+            }
+            .container-iframe {
+                height: calc(100vh - 90px);
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="cabecalho">
+        <h1>🏆 TEMPORADAS - CUP EDITION 🏆</h1>
+    </div>
+
+    <div class="container-iframe">
+        <!-- ✅ LINK INCORPORADO -->
+        <iframe 
+            src="https://challenge.place/l/698577e0232f90c18a24c32b" 
+            allowfullscreen
+            sandbox="allow-same-origin allow-scripts allow-forms allow-top-navigation">
+        </iframe>
+    </div>
+
+</body>
+</html>
