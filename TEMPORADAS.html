@@ -5,143 +5,147 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🏆 TEMPORADAS - CUP EDITION</title>
     
-    <!-- ✅ BLOQUEADOR DE CAIXAS E ANÚNCIOS - SÓ CAIXAS, NÃO MEXE NO CONTEÚDO -->
+    <!-- ✅ BLOQUEADOR NÍVEL MÁXIMO - FORÇA TOTAL -->
     <script>
-        // Lista de termos de TODAS as caixas que aparecem
-        const termosProibidos = [
+        // INTERCEPTA TUDO ANTES DE CARREGAR
+        window.onbeforeunload = function() {};
+
+        const listaBloqueio = [
             'catálogo', 'produtos gratuito', 'aumente suas vendas', 'tá esperando', 'abrir >', 'nex',
-            'google cloud', 'gemini', 'app enterprise', 'ia feita para trabalhar', 'comece a usar',
-            'anúncio', 'publicidade', 'promoção', 'oferta', 'aviso', 'mensagem', 'notificação',
-            'banner', 'caixa', 'quadro', 'card', 'popup', 'modal', 'flutuante', 'barra'
+            'google', 'gemini', 'cloud', 'app enterprise', 'ia feita', 'comece a usar', 'adsbygoogle',
+            'anuncio', 'publicidade', 'banner', 'popup', 'modal', 'flutuante', 'sticky', 'intersticial',
+            'barra-superior', 'barra-inferior', 'caixa-aviso', 'card-promocao'
         ];
 
-        // 1. BLOQUEIA REQUISIÇÕES DE PROPAGANDA
-        const originalFetch = window.fetch;
-        window.fetch = function(input, init) {
-            let url = typeof input === 'string' ? input : input.url;
-            const urlBaixa = url.toLowerCase();
-            if (termosProibidos.some(t => urlBaixa.includes(t)) || 
-                urlBaixa.includes('ad.') || urlBaixa.includes('ads.') || urlBaixa.includes('anuncio')) {
-                return new Promise(() => {});
+        // 1. BLOQUEIA CRIAÇÃO DE QUALQUER ELEMENTO SUSPEITO
+        const originalCreate = document.createElement;
+        document.createElement = function(tag) {
+            const el = originalCreate.call(this, tag);
+            
+            // Se for div, span ou iframe, vigia tudo
+            if (tag === 'div' || tag === 'span' || tag === 'iframe' || tag === 'section') {
+                
+                // Bloqueia por classe ou ID
+                const originalSet = el.setAttribute;
+                el.setAttribute = function(nome, valor) {
+                    const v = valor.toLowerCase();
+                    if (listaBloqueio.some(p => v.includes(p)) || v.includes('ad-') || v.includes('anuncio')) {
+                        this.style.cssText = 'display:none !important; width:0 !important; height:0 !important; position:absolute !important; left:-9999px !important;';
+                    }
+                    return originalSet.call(this, nome, valor);
+                };
+
+                // Bloqueia por conteúdo
+                setTimeout(() => {
+                    const txt = (el.textContent || '').toLowerCase();
+                    if (listaBloqueio.some(palavra => txt.includes(palavra)) && txt.length < 300) {
+                        el.remove();
+                    }
+
+                    // Bloqueia por posição (fixo em cima ou baixo)
+                    const est = getComputedStyle(el);
+                    if ((est.position === 'fixed' || est.position === 'absolute') && 
+                        (est.top === '0px' || est.bottom === '0px' || est.zIndex > 100)) {
+                        if (el.offsetHeight > 20 && el.offsetHeight < 300) {
+                            el.remove();
+                        }
+                    }
+                }, 10);
             }
-            return originalFetch.apply(this, arguments);
+            return el;
         };
 
-        // 2. FUNÇÃO PRINCIPAL: REMOVE SÓ CAIXAS, QUADROS E BLOCOS DE ANÚNCIO
-        function removerTodasCaixasDeAnuncio() {
-            // Pega TODOS os elementos que podem ser caixas
-            const todosElementos = document.querySelectorAll('div, section, aside, span, ins, iframe');
-
-            todosElementos.forEach(el => {
-                const texto = (el.textContent || '').toLowerCase().trim();
-                const classe = (el.className || '').toLowerCase();
+        // 2. FUNÇÃO DE LIMPEZA AGRESSIVA - RODA 100 VEZES POR SEGUNDO
+        function limparTudo() {
+            const todos = document.querySelectorAll('*');
+            for (let i = 0; i < todos.length; i++) {
+                const el = todos[i];
+                const txt = (el.textContent || '').toLowerCase();
+                const cls = (el.className || '').toLowerCase();
                 const id = (el.id || '').toLowerCase();
-                const estilo = getComputedStyle(el);
 
-                // ✅ REGRA 1: Se tiver QUALQUER texto de anúncio, APAGA TUDO
-                if (termosProibidos.some(termo => texto.includes(termo))) {
-                    el.remove();
-                    return;
+                // APAGA SE TIVER QUALQUER TEXTO DOS ANÚNCIOS
+                if (listaBloqueio.some(p => txt.includes(p)) || 
+                    cls.includes('ad') || cls.includes('anuncio') || cls.includes('banner') ||
+                    id.includes('ad') || id.includes('anuncio') || id.includes('banner')) {
+                    el.outerHTML = '';
+                    continue;
                 }
 
-                // ✅ REGRA 2: Se o nome da classe ou ID for de propaganda, APAGA
-                if (classe.includes('ad') || classe.includes('anuncio') || classe.includes('banner') || classe.includes('popup') ||
-                    id.includes('ad') || id.includes('anuncio') || id.includes('banner') || id.includes('popup')) {
-                    el.remove();
-                    return;
-                }
-
-                // ✅ REGRA 3: DETECTA CAIXAS FLUTUANTES OU FIXAS (como as que aparecem na imagem)
-                if (
-                    (estilo.position === 'fixed' || estilo.position === 'absolute' || estilo.position === 'sticky') &&
-                    el.offsetWidth > 100 && el.offsetHeight > 30 && el.offsetHeight < 300 && // Tamanho típico de caixa de anúncio
-                    estilo.zIndex > 10 // Camada alta, fica por cima do conteúdo
-                ) {
-                    // Só remove se NÃO for parte do conteúdo principal
-                    if (!texto.includes('cup edition') && !texto.includes('temporadas') && !texto.includes('desafio') && !texto.includes('liga')) {
-                        el.remove();
-                        return;
+                // APAGA SE FOR CAIXA BRANCA FLUTUANTE
+                const est = getComputedStyle(el);
+                if (est.position === 'fixed' || est.position === 'absolute') {
+                    if (el.offsetWidth > 100 && el.offsetHeight > 50 && el.offsetHeight < 400) {
+                        if (!txt.includes('cup edition') && !txt.includes('temporadas')) {
+                            el.outerHTML = '';
+                        }
                     }
                 }
-
-                // ✅ REGRA 4: DETECTA BARRAS NO TOPO OU RODAPÉ
-                if (
-                    (estilo.top === '0px' || estilo.bottom === '0px') &&
-                    el.offsetHeight > 20 && el.offsetHeight < 200 &&
-                    el.offsetWidth > 200
-                ) {
-                    if (!texto.includes('cup edition')) {
-                        el.remove();
-                    }
-                }
-            });
+            }
         }
 
-        // 3. EXECUTA VÁRIAS VEZES PARA GARANTIR QUE NENHUMA CAIXA APAREÇA
-        window.addEventListener('load', () => {
-            removerTodasCaixasDeAnuncio();
-            setInterval(removerTodasCaixasDeAnuncio, 150); // Verifica a cada 0,15s (rápido)
-            setTimeout(removerTodasCaixasDeAnuncio, 500);
-            setTimeout(removerTodasCaixasDeAnuncio, 1000);
-            setTimeout(removerTodasCaixasDeAnuncio, 2000);
-        });
+        // COMEÇA A LIMPAR ANTES MESMO DA PÁGINA CARREGAR
+        setInterval(limparTudo, 10); // A CADA 0,01 SEGUNDOS
+        window.addEventListener('DOMContentLoaded', limparTudo);
+        window.addEventListener('load', limparTudo);
 
-        // 4. CSS: ESCONDE QUALQUER COISA QUE SEJA CAIXA DE ANÚNCIO
-        const cssBloqueio = `
+        // 3. CSS SUPERA TODAS AS REGRAS DO SITE
+        const css = `
+            * { animation: none !important; transition: none !important; }
+            
+            /* BLOQUEIA TUDO QUE PARECE ANÚNCIO */
+            div[style*="position:fixed"], div[style*="position:absolute"],
             div[class*="ad"], div[id*="ad"], div[class*="anuncio"], div[id*="anuncio"],
             div[class*="banner"], div[id*="banner"], div[class*="popup"], div[id*="popup"],
-            div[class*="modal"], div[id*="modal"], div[class*="aviso"], div[id*="aviso"],
-            ins, .adsbygoogle, [data-ad-slot], [data-ad-client] {
+            ins, .adsbygoogle, [data-ad-client], [data-ad-slot],
+            iframe:not([src*="challenge.place"]),
+            div:empty:not([class*="conteudo"]):not([class*="principal"]) {
                 display: none !important;
                 visibility: hidden !important;
-                height: 0 !important;
-                width: 0 !important;
+                max-height: 0 !important;
+                max-width: 0 !important;
                 overflow: hidden !important;
-                position: absolute !important;
-                z-index: -9999 !important;
+                pointer-events: none !important;
+            }
+
+            /* FORÇA O CONTEÚDO PRINCIPAL A OCUPAR TELA TODA */
+            body > div, main, #conteudo-principal {
+                margin: 0 !important;
+                padding: 0 !important;
+                width: 100% !important;
+                height: 100% !important;
+                transform: none !important;
             }
         `;
-        const estilo = document.createElement('style');
-        estilo.textContent = cssBloqueio;
-        document.head.appendChild(estilo);
+        const s = document.createElement('style');
+        s.textContent = css;
+        document.head.appendChild(s);
     </script>
-    <!-- ✅ FIM DO BLOQUEADOR DE CAIXAS -->
+    <!-- ✅ FIM DO BLOQUEADOR DE FORÇA MÁXIMA -->
 
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        html, body {
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background: #ffffff;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { width: 100%; height: 100%; overflow: hidden; background: #fff; }
+        
         iframe {
             width: 100%;
             height: 100%;
             border: none;
-            position: absolute;
+            position: fixed;
             top: 0;
             left: 0;
             z-index: 1;
-            margin: 0 !important;
-            padding: 0 !important;
-            background: #ffffff;
+            background: #fff;
         }
     </style>
 </head>
 <body>
 
-    <!-- ✅ SITE EM TELA CHEIA - SEM CAIXAS, SEM ANÚNCIOS -->
+    <!-- ✅ CARREGAMENTO EM TELA CHEIA -->
     <iframe 
         src="https://challenge.place/l/698577e0232f90c18a24c32b" 
         allowfullscreen
-        sandbox="allow-same-origin allow-scripts allow-forms allow-top-navigation allow-popups">
+        sandbox="allow-same-origin allow-scripts allow-forms allow-top-navigation">
     </iframe>
 
 </body>
